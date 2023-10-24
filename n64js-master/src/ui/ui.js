@@ -41,6 +41,11 @@ export class UI {
     fileInput.click();
   }
 
+  // FJC
+  triggerLoadSelenium() {
+    const fileInput = document.getElementById("fileInput");
+  }
+
   loadFile() {
     const fileInput = document.getElementById("fileInput");
     if (fileInput && fileInput.files.length > 0) {
