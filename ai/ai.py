@@ -8,6 +8,7 @@ from PIL import Image
 import io
 import time
 import random
+from selenium.webdriver.common.keys import Keys
 
 def launch_game(browser, file_path):
     # Click on the load button
@@ -81,7 +82,7 @@ def execute_game_action(browser, action):
     return reward, done
 
 def main():
-    ACTIONS = ['s', 'z', 'x', 'up', 'left', 'right', 'down']
+    ACTIONS = ['s', 'z', 'x', Keys.UP, Keys.LEFT, Keys.RIGHT, Keys.DOWN]
     NUNM_ACTIONS = len(ACTIONS)
     try:
         # Check if the screenshots directory exists, create it if not
