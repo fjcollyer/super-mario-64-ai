@@ -32,18 +32,14 @@ def get_to_start(browser):
     """
     Take actions in the game to get to the actual start.
     """
-    delay_per_action = 2
-    while True:
-        # Take an action
-        action = random.randint(0, 3)
-        reward, done = execute_game_action(browser, action)
-
-        # Sleep for a bit
-        time.sleep(delay_per_action)
-
-        # Check if we're at the start
-        if done:
-            breakex
+    time.sleep(5)
+    execute_game_action(browser, "a")
+    time.sleep(2)
+    execute_game_action(browser, "a")
+    time.sleep(20)
+    execute_game_action(browser, "s")
+    time.sleep(2)
+    execute_game_action(browser, "s")
 
 def get_screen_data(browser):
     """
@@ -85,6 +81,8 @@ def execute_game_action(browser, action):
     return reward, done
 
 def main():
+    ACTIONS = ['s', 'z', 'x', 'up', 'left', 'right', 'down']
+    NUNM_ACTIONS = len(ACTIONS)
     try:
         # Check if the screenshots directory exists, create it if not
         if not os.path.exists("./screenshots"):
@@ -95,8 +93,8 @@ def main():
         browser = webdriver.Chrome()
         browser.get('http://[::]:8000/')
         
-        print("Sleeping for 5 seconds...")
-        time.sleep(5)
+        print("Sleeping for 3 seconds...")
+        time.sleep(3)
 
         # Start the game
         print("Starting game...")
@@ -112,11 +110,11 @@ def main():
             obs = get_screen_data(browser)
 
             # Take a random action for demonstration purposes
-            action = random.randint(0, 3)
+            action = random.choice(ACTIONS)
             execute_game_action(browser, action)
             
-            # Pause for 5 seconds before the next action/screenshot
-            time.sleep(5)
+            # Pause for s seconds before the next action/screenshot
+            time.sleep(2)
 
     except KeyboardInterrupt:
         # If you press Ctrl+C, it will close the browser and exit the loop.

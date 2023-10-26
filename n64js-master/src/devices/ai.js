@@ -214,7 +214,7 @@ export class AIRegDevice extends Device {
 
     if (kLogInterval > 0 && (currentTime - this.lastLogTime) > kLogInterval) {
       const leadOrLag = timeDiff > 0 ? 'leading' : 'lagging';
-      console.log(`AI sync: timeDelta ${timeDiff}, ${leadOrLag}, dynamic ${this.dynamicRate}, ${this.frequency} -> ${sampleRate}`);
+      // console.log(`AI sync: timeDelta ${timeDiff}, ${leadOrLag}, dynamic ${this.dynamicRate}, ${this.frequency} -> ${sampleRate}`);
       this.lastLogTime = currentTime;
     }
 
