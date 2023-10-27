@@ -42,14 +42,42 @@ def get_to_start(browser):
     time.sleep(2)
     execute_game_action(browser, "s")
 
-def get_screen_data(browser):
+def get_game_data(browser):
     """
-    Get the current game screen
+    Get the current game data
     """
     # Take a screenshot and save it
     timestamp = time.strftime("%Y%m%d-%H%M%S")
     filename = f"./screenshots/screenshot_{timestamp}.png"
     browser.save_screenshot(filename)
+
+    # Get game variables
+    try:
+      mario_x_position = browser.find_element(By.ID, "mario-x-position").text
+      mario_y_position = browser.find_element(By.ID, "mario-y-position").text
+      mario_z_position = browser.find_element(By.ID, "mario-z-position").text
+      mario_health = browser.find_element(By.ID, "mario-health").text
+      mario_lives = browser.find_element(By.ID, "mario-lives").text
+      mario_speed = browser.find_element(By.ID, "mario-speed").text
+    except:
+        mario_x_position = None
+        mario_y_position = None
+        mario_z_position = None
+        mario_health = None
+        mario_lives = None
+        mario_speed = None
+
+    game_data = {
+        "screenshot_filepath": filename,
+        "mario_x_position": mario_x_position,
+        "mario_y_position": mario_y_position,
+        "mario_z_position": mario_z_position,
+        "mario_health": mario_health,
+        "mario_lives": mario_lives,
+        "mario_speed": mario_speed
+    }
+
+    return game_data
 
 def reset_game(browser):
     """
@@ -63,7 +91,7 @@ def execute_game_action(browser, action):
     """
     Execute the action in the game.
     """
-    input_field = browser.find_element(By.ID, "random")
+    input_field = browser.find_element(By.ID, "selenium-inputs")
     input_field.send_keys(action)
 
     # Now actually execute the action in the browser window
@@ -108,7 +136,8 @@ def main():
         
         while True:
             # Get the current game screen
-            obs = get_screen_data(browser)
+            game_data = get_game_data(browser)
+            print(game_data)
 
             # Take a random action for demonstration purposes
             action = random.choice(ACTIONS)
