@@ -95,7 +95,7 @@ export class Controllers {
       case 's': this.setButton(idx, kButtonA, down); break;
       case 'x': this.setButton(idx, kButtonB, down); break;
       case 'z': this.setButton(idx, kButtonZ, down); break;
-      // case 'y': this.setButton(idx, kButtonZ, down); break;
+      case 'y': this.setButton(idx, kButtonZ, down); break;
       case 'c': this.setButton(idx, kButtonL, down); break;
       case 'v': this.setButton(idx, kButtonR, down); break;
 

@@ -7,7 +7,8 @@ import { Vector2 } from "../graphics/Vector2.js";
 import { Vector4 } from "../graphics/Vector4.js";
 import * as gbi from './gbi.js';
 import * as shaders from './shaders.js';
-import { Texture, clampTexture } from './textures.js';
+import { Texture } from './textures.js';
+import { VertexArray } from "./vertex_array.js";
 
 const kBlendModeUnknown = 0;
 const kBlendModeOpaque = 1;
@@ -61,18 +62,13 @@ export class Renderer {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
     this.blitShaderProgram = shaders.createShaderProgram(gl, "blit-shader-vs", "blit-shader-fs");
-    this.blitVertexPositionAttribute = gl.getAttribLocation(this.blitShaderProgram, "aVertexPosition");
-    this.blitTexCoordAttribute = gl.getAttribLocation(this.blitShaderProgram, "aTextureCoord");
     this.blitSamplerUniform = gl.getUniformLocation(this.blitShaderProgram, "uSampler");
+    this.blitVA = this.initBlitVA(this.blitShaderProgram);
 
     this.fillShaderProgram = shaders.createShaderProgram(gl, "fill-shader-vs", "fill-shader-fs");
-    this.fillVertexPositionAttribute = gl.getAttribLocation(this.fillShaderProgram, "aVertexPosition");
     this.fillFillColorUniform = gl.getUniformLocation(this.fillShaderProgram, "uFillColor");
-    this.fillVerticesBuffer = gl.createBuffer();
-
-    this.n64PositionsBuffer = gl.createBuffer();
-    this.n64ColorsBuffer = gl.createBuffer();
-    this.n64UVBuffer = gl.createBuffer();
+    this.fillRectVA = this.initFillRectVA(this.fillShaderProgram);
+    this.debugClearVA = this.initClearVA(this.fillShaderProgram);
 
     this.$textureOutput = $('#texture-content');
   }
@@ -91,42 +87,41 @@ export class Renderer {
     gl.viewport(0, 0, this.frameBuffer.width, this.frameBuffer.height);
   }
 
+  initBlitVA(program) {
+    const gl = this.gl;
+    const va = new VertexArray(gl);
+
+    const positions = [
+      -1, -1, 0, 1,
+      1, -1, 0, 1,
+      -1, 1, 0, 1,
+      1, 1, 0, 1,
+    ];
+    va.initPosAttr(program, "aPosition");
+    va.setPosData(new Float32Array(positions), gl.STATIC_DRAW);
+
+    const uvs = [
+      0, 0,
+      1, 0,
+      0, 1,
+      1, 1,
+    ];
+    va.initUVsAttr(program, "aUV");
+    va.setUVData(new Float32Array(uvs), gl.STATIC_DRAW);
+
+    return va;
+  }
+
   copyTextureToFrontBuffer(texture) {
     const gl = this.gl;
     // Passing null binds the framebuffer to the canvas.
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    const vertices = [
-      -1.0, -1.0, 0.0, 1.0,
-      1.0, -1.0, 0.0, 1.0,
-      -1.0, 1.0, 0.0, 1.0,
-      1.0, 1.0, 0.0, 1.0
-    ];
-
-    const uvs = [
-      0.0, 0.0,
-      1.0, 0.0,
-      0.0, 1.0,
-      1.0, 1.0
-    ];
-
     gl.useProgram(this.blitShaderProgram);
 
     const canvas = document.getElementById('display');
     gl.viewport(0, 0, canvas.width, canvas.height);
 
-    // TODO: use createVertexArray.
-    // aVertexPosition
-    gl.enableVertexAttribArray(this.blitVertexPositionAttribute);
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.n64PositionsBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    gl.vertexAttribPointer(this.blitVertexPositionAttribute, 4, gl.FLOAT, false, 0, 0);
-
-    // aTextureCoord
-    gl.enableVertexAttribArray(this.blitTexCoordAttribute);
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.n64UVBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvs), gl.STATIC_DRAW);
-    gl.vertexAttribPointer(this.blitTexCoordAttribute, 2, gl.FLOAT, false, 0, 0);
+    this.blitVA.bind();
 
     // uSampler
     gl.activeTexture(gl.TEXTURE0);
@@ -139,6 +134,7 @@ export class Renderer {
     gl.depthMask(false);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    this.blitVA.unbind();
   }
 
   copyBackBufferToFrontBuffer() {
@@ -196,25 +192,29 @@ export class Renderer {
     gl.drawArrays(gl.TRIANGLES, 0, tb.numTris * 3);
     //gl.drawArrays(gl.LINE_STRIP, 0, numTris * 3);
     tb.reset();
+    gl.bindVertexArray(null);
   }
 
-  debugClear() {
+  initClearVA(program) {
     const gl = this.gl;
+    const va = new VertexArray(gl);
 
-    const vertices = [
+    const positions = [
       +1, +1, 0, 1,
       -1, +1, 0, 1,
       +1, -1, 0, 1,
       -1, -1, 0, 1,
     ];
+    va.initPosAttr(program, "aPosition");
+    va.setPosData(new Float32Array(positions), gl.STATIC_DRAW);
+    return va;
+  }
+
+  debugClear() {
+    const gl = this.gl;
 
     gl.useProgram(this.fillShaderProgram);
-
-    // aVertexPosition
-    gl.enableVertexAttribArray(this.fillVertexPositionAttribute);
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.fillVerticesBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    gl.vertexAttribPointer(this.fillVertexPositionAttribute, 4, gl.FLOAT, false, 0, 0);
+    this.debugClearVA.bind();
 
     // uFillColor
     gl.uniform4f(this.fillFillColorUniform, 1, 0, 1, 1);
@@ -226,6 +226,15 @@ export class Renderer {
     gl.depthMask(false);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    this.debugClearVA.unbind();
+  }
+
+  initFillRectVA(program) {
+    const gl = this.gl;
+    const va = new VertexArray(gl);
+    va.initPosAttr(program, "aPosition");
+    va.setPosData(new Float32Array(4 * 4), gl.DYNAMIC_DRAW);
+    return va;
   }
 
   fillRect(x0, y0, x1, y1, color) {
@@ -244,12 +253,8 @@ export class Renderer {
     ];
 
     gl.useProgram(this.fillShaderProgram);
-
-    // aVertexPosition
-    gl.enableVertexAttribArray(this.fillVertexPositionAttribute);
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.fillVerticesBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    gl.vertexAttribPointer(this.fillVertexPositionAttribute, 4, gl.FLOAT, false, 0, 0);
+    this.fillRectVA.bind();
+    this.fillRectVA.setPosData(new Float32Array(vertices), gl.DYNAMIC_DRAW);
 
     // uFillColor
     gl.uniform4f(this.fillFillColorUniform, color.r, color.g, color.b, color.a);
@@ -260,6 +265,7 @@ export class Renderer {
     gl.depthMask(false);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    this.fillRectVA.unbind();
   }
 
   texRect(tileIdx, x0, y0, x1, y1, s0, t0, s1, t1, flip) {
@@ -313,6 +319,7 @@ export class Renderer {
       gl.depthMask(false);
     }
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.bindVertexArray(null);
   }
 
   texRectRot(tileIdx, x0, y0, x1, y1, x2, y2, x3, y3, s0, t0, s1, t1) {
@@ -356,6 +363,7 @@ export class Renderer {
       gl.depthMask(false);
     }
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.bindVertexArray(null);
   }
 
   initDepth() {
@@ -417,23 +425,11 @@ export class Renderer {
     const shader = this.getCurrentN64Shader();
     gl.useProgram(shader.program);
 
-    // aVertexPosition
-    gl.enableVertexAttribArray(shader.vertexPositionAttribute);
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.n64PositionsBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(shader.vertexPositionAttribute, 4, gl.FLOAT, false, 0, 0);
-
-    // aVertexColor
-    gl.enableVertexAttribArray(shader.vertexColorAttribute);
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.n64ColorsBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, colours, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(shader.vertexColorAttribute, 4, gl.UNSIGNED_BYTE, true, 0, 0);
-
-    // aTextureCoord
-    gl.enableVertexAttribArray(shader.texCoordAttribute);
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.n64UVBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, coords, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(shader.texCoordAttribute, 2, gl.FLOAT, false, 0, 0);
+    // TODO: just return the shader and do the binding at the call site?
+    shader.vertexArray.bind();
+    shader.vertexArray.setPosData(positions, gl.DYNAMIC_DRAW);
+    shader.vertexArray.setColorData(colours, gl.DYNAMIC_DRAW);
+    shader.vertexArray.setUVData(coords, gl.DYNAMIC_DRAW);
 
     this.bindTexture(0, gl.TEXTURE0, tile0, texture0, texGenEnabled, shader.uSamplerUniform0, shader.uTexScaleUniform0, shader.uTexOffsetUniform0);
     this.bindTexture(1, gl.TEXTURE1, tile1, texture1, texGenEnabled, shader.uSamplerUniform1, shader.uTexScaleUniform1, shader.uTexOffsetUniform1);
@@ -498,6 +494,10 @@ export class Renderer {
   decodeTexture(tile, tlutFormat, cacheID) {
     const gl = this.gl;
 
+    if (tile.width == 0 || tile.height == 0) {
+      return null;
+    }
+
     const texture = new Texture(gl, tile.width, tile.height);
     if (!texture.$canvas[0].getContext) {
       return null;
@@ -507,12 +507,10 @@ export class Renderer {
       `${cacheID}: ${gbi.ImageFormat.nameOf(tile.format)}, ${gbi.ImageSize.nameOf(tile.size)},${tile.width}x${tile.height}, <br>`);
 
     const ctx = texture.$canvas[0].getContext('2d');
-    const imgData = ctx.createImageData(texture.nativeWidth, texture.nativeHeight);
+    const imgData = ctx.createImageData(texture.width, texture.height);
 
     const handled = this.state.tmem.convertTexels(tile, tlutFormat, imgData);
     if (handled) {
-      clampTexture(imgData, tile.width, tile.height);
-
       ctx.putImageData(imgData, 0, 0);
 
       this.$textureOutput.append(texture.$canvas);
@@ -546,8 +544,8 @@ export class Renderer {
 
     let uvOffsetU = tile.left;
     let uvOffsetV = tile.top;
-    let uvScaleU = 1.0 / texture.nativeWidth;
-    let uvScaleV = 1.0 / texture.nativeHeight;
+    let uvScaleU = 1.0 / texture.width;
+    let uvScaleV = 1.0 / texture.height;
 
     // Horrible hack for wetrix. For some reason uvs come out 2x what they should be.
     if (texture.width === 56 && texture.height === 29) {
@@ -723,3 +721,4 @@ function shiftFactor(shift) {
   }
   return 1 << (16 - shift);
 }
+
