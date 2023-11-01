@@ -26,7 +26,7 @@ export class Texture {
     var srcCtx = this.$canvas[0].getContext('2d');
     var dstCtx = $canvas[0].getContext('2d');
 
-    var srcImgData = srcCtx.getImageData(0, 0, this.width, this.height);
+    var srcImgData = srcCtx.getImageData(0, 0, this.width, this.height);z
     var dstImgData = dstCtx.createImageData(w, h);
 
     var src = srcImgData.data;

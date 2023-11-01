@@ -21,6 +21,8 @@ const loggedBlendModes = new Map();
 
 export class Renderer {
   constructor(gl, state, width, height) {
+    this.lastImageCreationTime = Date.now();
+
     this.gl = gl;
     this.state = state;
     this.nativeTransform = new NativeTransform();
@@ -85,6 +87,13 @@ export class Renderer {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
     // Set the viewport to match the framebuffer dimensions.
     gl.viewport(0, 0, this.frameBuffer.width, this.frameBuffer.height);
+
+    // FJC
+    let pixels = new Uint8Array(this.frameBuffer.width * this.frameBuffer.height * 4);
+    gl.readPixels(0, 0, this.frameBuffer.width, this.frameBuffer.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+    window.fjcPixels = pixels;
+    window.fjcFrameBufferWidth = this.frameBuffer.width;
+    window.fjcFrameBufferHeight = this.frameBuffer.height;
   }
 
   initBlitVA(program) {
